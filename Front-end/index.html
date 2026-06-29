@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitMacro - AI Meal Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <div class="ambient" aria-hidden="true"></div>
+
+    <section class="screen auth-screen active" id="screen-login">
+      <div class="auth-visual">
+        <div class="brand-lockup">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 13a8 8 0 0 1 16 0c0 5-8 9-8 9s-8-4-8-9Z"/>
+              <path d="M8 13h8M12 9v8"/>
+              <path d="M7 4h10"/>
+            </svg>
+          </div>
+          <div>
+            <span class="eyebrow">AI nutrition studio</span>
+            <h1>Fit<span>Macro</span></h1>
+          </div>
+        </div>
+        <p>Track meals by photo, plan macros around your body, and keep your day moving without spreadsheets.</p>
+        <div class="hero-metrics">
+          <div><b>Photo</b><span>meal analysis</span></div>
+          <div><b>Macro</b><span>target planning</span></div>
+          <div><b>Daily</b><span>meal tracking</span></div>
+        </div>
+      </div>
+
+      <div class="auth-panel">
+        <div class="form-banner" id="auth-banner"></div>
+        <div id="login-form">
+          <h2>Welcome back</h2>
+          <p class="muted">Sign in or continue as a guest to explore the prototype.</p>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com" id="login-email">
+            <div class="field-msg" id="login-email-msg"></div>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" placeholder="At least 6 characters" id="login-pass">
+            <div class="field-msg" id="login-pass-msg"></div>
+          </div>
+          <button class="btn btn-primary" onclick="handleLogin()">Sign in</button>
+          <button class="btn btn-soft" onclick="continueGuest()">Continue as guest</button>
+          <div class="switch-mode">New here? <a href="#" onclick="showRegister()">Create an account</a></div>
+        </div>
+
+        <div id="register-form" hidden>
+          <h2>Create account</h2>
+          <p class="muted">Frontend-only for now. Backend can come later.</p>
+          <div class="field">
+            <label>Full name</label>
+            <input type="text" placeholder="Jordan Lee" id="reg-name">
+            <div class="field-msg" id="reg-name-msg"></div>
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" placeholder="you@example.com" id="reg-email">
+            <div class="field-msg" id="reg-email-msg"></div>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" placeholder="At least 6 characters" id="reg-pass">
+            <div class="field-msg" id="reg-pass-msg"></div>
+          </div>
+          <div class="field">
+            <label>Confirm password</label>
+            <input type="password" placeholder="Repeat password" id="reg-pass2">
+            <div class="field-msg" id="reg-pass2-msg"></div>
+          </div>
+          <button class="btn btn-primary" onclick="handleRegister()">Create account</button>
+          <div class="switch-mode">Already have an account? <a href="#" onclick="showLogin()">Sign in</a></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen setup-screen" id="screen-stats">
+      <div class="topbar">
+        <button class="icon-btn" onclick="go('screen-login')" aria-label="Back">
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="brand-inline"><div class="mini-mark"></div><span>FitMacro</span></div>
+      </div>
+      <div class="setup-card">
+        <span class="eyebrow">Personal setup</span>
+        <h1>Build your daily targets</h1>
+        <p class="muted">Add your body stats once and the dashboard will shape itself around your calorie and macro goals.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label>Sex</label>
+            <div class="seg">
+              <button class="sel" onclick="selSeg(this)">Male</button>
+              <button onclick="selSeg(this)">Female</button>
+            </div>
+          </div>
+          <div class="field"><label>Age</label><input type="number" placeholder="24" id="in-age" min="10" max="100"><div class="field-msg" id="in-age-msg"></div></div>
+          <div class="field"><label>Height (cm)</label><input type="number" placeholder="178" id="in-height" min="100" max="250"><div class="field-msg" id="in-height-msg"></div></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" placeholder="72" id="in-weight" min="30" max="300"><div class="field-msg" id="in-weight-msg"></div></div>
+          <div class="field wide">
+            <label>Activity level</label>
+            <select id="in-activity">
+              <option value="1.2">Sedentary - little exercise</option>
+              <option value="1.375">Light - 1-3 days / week</option>
+              <option value="1.55" selected>Moderate - 3-5 days / week</option>
+              <option value="1.725">Active - 6-7 days / week</option>
+              <option value="1.9">Very active - physical job/training</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="calcAndGo()">Generate dashboard</button>
+      </div>
+    </section>
+
+    <section class="screen app-screen" id="screen-home">
+      <aside class="sidebar"></aside>
+
+      <main class="workspace">
+        <header class="page-head">
+          <div>
+            <span class="eyebrow" id="today-label">Today</span>
+            <h1 id="home-title">Your nutrition dashboard</h1>
+          </div>
+          <button class="btn btn-primary compact-btn" onclick="go('screen-track')">Add meal</button>
+        </header>
+
+        <div class="dashboard-grid">
+          <section class="summary-card">
+            <div class="ring" id="calorie-ring" style="--progress:0%">
+              <div><b id="dash-remaining">0</b><span>kcal left</span></div>
+            </div>
+            <div>
+              <h2>Daily energy</h2>
+              <p class="muted" id="dash-cal-sub">Set up targets to begin tracking.</p>
+              <div class="mini-stats">
+                <div><b id="dash-eaten">0</b><span>eaten</span></div>
+                <div><b id="dash-target">0</b><span>target</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="coach-card">
+            <span class="eyebrow">Coach note</span>
+            <h2 id="coach-title">Ready when you are</h2>
+            <p id="coach-copy">Add your first meal or calculate your targets to unlock a smarter daily summary.</p>
+          </section>
+
+          <section class="macro-panel">
+            <div class="section-head"><h2>Macros</h2><button class="text-btn" onclick="go('screen-targets')">Edit</button></div>
+            <div class="macro-progress" id="macro-progress"></div>
+          </section>
+
+          <section class="history-panel">
+            <div class="section-head"><h2>Recent meals</h2><button class="text-btn" onclick="go('screen-history')">View all</button></div>
+            <div class="meal-list" id="recent-meals"></div>
+          </section>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-track">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Track meal</span><h1>Add nutrition fast</h1></div>
+        </header>
+        <div class="track-grid">
+          <section class="upload-card">
+            <div class="upload-zone" id="upload-zone">
+              <div class="camera-icon">
+                <svg viewBox="0 0 24 24"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <b>Drop in a meal photo</b>
+              <p class="muted">Use your camera or choose a gallery image.</p>
+            </div>
+            <input type="file" id="file-camera" accept="image/*" capture="environment" hidden onchange="handleFile(event)">
+            <input type="file" id="file-gallery" accept="image/*" hidden onchange="handleFile(event)">
+            <div class="action-row">
+              <button class="btn btn-primary" onclick="document.getElementById('file-camera').click()">Camera</button>
+              <button class="btn btn-soft" onclick="document.getElementById('file-gallery').click()">Gallery</button>
+            </div>
+            <button class="btn btn-primary" id="analyze-btn" disabled onclick="startAnalysis()">Analyze photo</button>
+          </section>
+
+          <section class="manual-card">
+            <span class="eyebrow">Manual entry</span>
+            <h2>Know the numbers?</h2>
+            <p class="muted">Add a meal yourself while the real backend waits its turn.</p>
+            <div class="form-grid compact-form">
+              <div class="field wide"><label>Meal name</label><input id="manual-name" placeholder="Chicken rice bowl"></div>
+              <div class="field"><label>Calories</label><input id="manual-cal" type="number" placeholder="520"></div>
+              <div class="field"><label>Protein</label><input id="manual-protein" type="number" placeholder="42"></div>
+              <div class="field"><label>Carbs</label><input id="manual-carbs" type="number" placeholder="55"></div>
+              <div class="field"><label>Fat</label><input id="manual-fat" type="number" placeholder="14"></div>
+            </div>
+            <button class="btn btn-soft" onclick="addManualMeal()">Add manual meal</button>
+          </section>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-results">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Analysis result</span><h1 id="result-name">Your meal</h1></div>
+          <button class="btn btn-soft compact-btn" onclick="go('screen-track')">Track another</button>
+        </header>
+        <div class="result-layout">
+          <img class="preview-img" id="preview-img" src="" alt="Analyzed meal">
+          <section class="result-card">
+            <p class="muted" id="result-weight">Estimated from your photo</p>
+            <div class="result-macros">
+              <div><span>Calories</span><b id="r-cal">-</b></div>
+              <div><span>Protein</span><b id="r-protein">-</b></div>
+              <div><span>Carbs</span><b id="r-carbs">-</b></div>
+              <div><span>Fat</span><b id="r-fat">-</b></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveCurrentMeal()">Add to today</button>
+            <p class="disclaimer">Demo estimate generated in the browser. Real AI analysis can be connected later.</p>
+          </section>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-history">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Meal log</span><h1>History</h1></div>
+          <button class="btn btn-primary compact-btn" onclick="go('screen-track')">Add meal</button>
+        </header>
+        <section class="panel">
+          <div class="section-head"><h2>Today</h2><button class="text-btn" onclick="clearMeals()">Clear</button></div>
+          <div class="meal-list large" id="history-list"></div>
+        </section>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-targets">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Daily goals</span><h1>Targets</h1></div>
+          <button class="btn btn-soft compact-btn" onclick="go('screen-stats')">Recalculate</button>
+        </header>
+        <div class="targets-grid">
+          <div class="target-card calories"><span>Calories</span><b id="t-cal">-</b><small>Daily energy target</small></div>
+          <div class="target-card protein"><span>Protein</span><b id="t-protein">-</b><small>Muscle and repair</small></div>
+          <div class="target-card carbs"><span>Carbs</span><b id="t-carbs">-</b><small>Training fuel</small></div>
+          <div class="target-card fat"><span>Fat</span><b id="t-fat">-</b><small>Hormones and absorption</small></div>
+        </div>
+        <section class="panel">
+          <div class="section-head"><h2>Target summary</h2><span class="pill">Live</span></div>
+          <p class="muted">These targets are calculated from your stats. Open the dedicated diet planner when you want a goal-based 7-day plan.</p>
+          <button class="btn btn-soft" onclick="go('screen-diet')">Open diet planner</button>
+        </section>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-diet">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Diet planner</span><h1>7-day meal plan</h1></div>
+          <button class="btn btn-soft compact-btn" onclick="go('screen-targets')">Back to targets</button>
+        </header>
+        <section class="panel">
+          <div class="section-head"><h2>Goal-based nutrition plan</h2><span class="pill">Frontend preview</span></div>
+          <p class="muted">Your calorie target now follows your goal weight using the 7700 kcal/kg rule, with safe weekly adjustment ranges.</p>
+          <div class="goal-grid">
+            <button class="goal-card" data-goal="cutting" onclick="selGoalType('cutting', this)"><b>Cutting</b><span>Lose fat with a controlled deficit</span></button>
+            <button class="goal-card" data-goal="bulking" onclick="selGoalType('bulking', this)"><b>Bulking</b><span>Build muscle with a lean surplus</span></button>
+            <button class="goal-card" data-goal="fit" onclick="selGoalType('fit', this)"><b>Maintain</b><span>Stay balanced and consistent</span></button>
+          </div>
+          <div class="plan-controls">
+            <div class="field">
+              <label>Goal weight (kg)</label>
+              <input type="number" placeholder="68" id="in-goal-weight" min="30" max="300">
+            </div>
+            <div class="field">
+              <label>Food style</label>
+              <select id="plan-style">
+                <option value="balanced">Balanced</option>
+                <option value="simple">Simple prep</option>
+                <option value="mediterranean">Mediterranean</option>
+                <option value="highProtein">High protein</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="buildDietPlan()">Build 7-day plan</button>
+          </div>
+          <div class="diet-output" id="diet-output"></div>
+        </section>
+      </main>
+    </section>
+
+    <section class="screen app-screen" id="screen-profile">
+      <aside class="sidebar"></aside>
+      <main class="workspace">
+        <header class="page-head">
+          <div><span class="eyebrow">Account</span><h1>Profile</h1></div>
+        </header>
+        <div class="profile-grid">
+          <section class="profile-card">
+            <div class="avatar" id="p-avatar">FM</div>
+            <h2 id="p-name">Guest</h2>
+            <p class="muted" id="p-email">guest@fitmacro.local</p>
+          </section>
+          <section class="panel">
+            <div class="section-head"><h2>Body info</h2><button class="text-btn" onclick="go('screen-stats')">Edit</button></div>
+            <div class="stat-grid">
+              <div><span>Sex</span><b id="p-sex">-</b></div>
+              <div><span>Age</span><b id="p-age">-</b></div>
+              <div><span>Height</span><b id="p-height">-</b></div>
+              <div><span>Weight</span><b id="p-weight">-</b></div>
+              <div class="wide"><span>Activity</span><b id="p-activity">Not set yet</b></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen loading-screen" id="screen-loading">
+      <div class="spinner"></div>
+      <h2>Analyzing your meal</h2>
+      <p class="muted">Estimating ingredients, portions, and macros.</p>
+    </section>
+  </div>
+
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"></nav>
+  <script src="script.js"></script>
+</body>
+</html>
