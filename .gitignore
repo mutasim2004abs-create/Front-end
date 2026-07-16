@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# Secrets — the Anthropic API key belongs in Vercel env vars, never in the repo.
+.env
+.env.*
+!.env.example
+
+.vercel/
+.DS_Store
+*.local
+npm-debug.log*
+.eslintcache

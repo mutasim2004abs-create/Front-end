@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitMacro — AI Meal Tracker</title>
+<style>
+  :root{
+    --black:#0b0b0a;
+    --black-soft:#141311;
+    --surface:#1a1916;
+    --surface-2:#221f1b;
+    --surface-3:#2a2620;
+    --white:#f7f5f0;
+    --white-soft:#f5f5f0;
+    --gray:#9a958a;
+    --gray-soft:#65615a;
+    --gold:#d4af37;
+    --gold-light:#f0d878;
+    --gold-dim:#8a7224;
+    --border:rgba(212,175,55,0.16);
+    --border-strong:rgba(212,175,55,0.32);
+    --danger:#e2685f;
+    --success:#7fc28a;
+    --radius-lg:22px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --shadow-soft:0 2px 14px -6px rgba(0,0,0,0.5);
+    --shadow-card:0 4px 22px -10px rgba(0,0,0,0.6);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Helvetica Neue',Arial,-apple-system,sans-serif;
+    background:radial-gradient(ellipse 120% 80% at 50% -10%, #1c1a15 0%, var(--black) 55%);
+    color:var(--white);
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* ---- decorative background stickers ---- */
+  .bg-deco{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    pointer-events:none;
+    z-index:0;
+  }
+  .bg-deco svg{
+    position:absolute;
+    stroke:var(--gold);
+    fill:none;
+    opacity:0.05;
+  }
+
+  /* ---- screens ---- */
+  .screen{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    padding:30px 26px 26px;
+    z-index:2;
+    animation:fadeIn .45s var(--ease);
+    overflow-y:auto;
+    background:transparent;
+  }
+  .screen.active{display:flex;}
+  @keyframes fadeIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  /* ---- top bar / back button ---- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:22px;
+    min-height:34px;
+  }
+  .back-btn{
+    width:34px;height:34px;
+    border-radius:11px;
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    color:var(--gray);
+    transition:background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease);
+    flex-shrink:0;
+  }
+  .back-btn:hover{background:var(--surface-2); border-color:var(--border-strong); color:var(--gold-light);}
+  .back-btn svg{width:17px;height:17px;}
+  .back-spacer{width:34px; flex-shrink:0;}
+
+  /* ---- shared elements ---- */
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .brand .mark{
+    width:30px;height:30px;
+    border-radius:9px;
+    background:linear-gradient(150deg, var(--gold-light), var(--gold) 60%, var(--gold-dim));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 3px 10px -3px rgba(212,175,55,0.5);
+  }
+  .brand .mark svg{width:16px;height:16px;stroke:var(--black);}
+  .brand-name{
+    font-size:14px;
+    letter-spacing:0.08em;
+    font-weight:600;
+    color:var(--white);
+  }
+  .brand-name span{color:var(--gold);}
+
+  h1{
+    font-size:28px;
+    font-weight:600;
+    line-height:1.25;
+    letter-spacing:-0.01em;
+    margin-bottom:10px;
+  }
+  h1 .accent{color:var(--gold);}
+  .sub{
+    color:var(--gray);
+    font-size:14.5px;
+    line-height:1.65;
+    margin-bottom:24px;
+  }
+
+  .spacer{flex:1;}
+
+  /* ---- buttons ---- */
+  .btn{
+    width:100%;
+    padding:16px 20px;
+    border-radius:14px;
+    border:none;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    transition:transform .18s var(--ease), opacity .18s var(--ease), box-shadow .25s var(--ease), background .2s var(--ease);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--gold-light), var(--gold) 55%, var(--gold-dim));
+    color:#1a1404;
+    box-shadow:0 8px 22px -8px rgba(212,175,55,0.4);
+  }
+  .btn-primary:hover{box-shadow:0 10px 28px -6px rgba(212,175,55,0.55);}
+  .btn-primary[disabled]{
+    background:var(--surface-2);
+    color:var(--gray-soft);
+    box-shadow:none;
+    opacity:1;
+  }
+  .btn-ghost{
+    background:var(--surface);
+    color:var(--white);
+    border:0.5px solid var(--border);
+  }
+  .btn-ghost:hover{background:var(--surface-2); border-color:var(--border-strong);}
+  .btn-text{
+    background:transparent;
+    color:var(--gray);
+    font-weight:500;
+    padding:10px;
+  }
+  .btn-text:hover{color:var(--gold);}
+  .btn[disabled]{opacity:0.45; pointer-events:none;}
+
+  .btn-row{display:flex; gap:12px;}
+
+  /* ---- inputs ---- */
+  .field{margin-bottom:17px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--gray);
+    margin-bottom:8px;
+    letter-spacing:0.02em;
+    font-weight:500;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:15px 16px;
+    border-radius:12px;
+    border:0.5px solid var(--border);
+    background:var(--surface);
+    color:var(--white);
+    font-size:15px;
+    outline:none;
+    transition:border-color .2s var(--ease), background .2s var(--ease), box-shadow .2s var(--ease);
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  .field input::placeholder{color:var(--gray-soft);}
+  .field input:focus, .field select:focus{
+    border-color:var(--gold);
+    background:var(--surface-2);
+    box-shadow:0 0 0 3px rgba(212,175,55,0.08);
+  }
+  .field input.err, .field select.err{
+    border-color:var(--danger);
+  }
+  .field-msg{
+    font-size:12px;
+    color:var(--danger);
+    margin-top:6px;
+    min-height:14px;
+  }
+  .seg{
+    display:flex;
+    gap:8px;
+  }
+  .seg button{
+    flex:1;
+    padding:13px;
+    border-radius:12px;
+    border:0.5px solid var(--border);
+    background:var(--surface);
+    color:var(--gray);
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:all .2s var(--ease);
+  }
+  .seg button.sel{
+    border-color:var(--gold);
+    background:rgba(212,175,55,0.12);
+    color:var(--gold-light);
+  }
+
+  /* ---- progress dots ---- */
+  .progress{
+    display:flex;
+    gap:6px;
+    margin-bottom:26px;
+  }
+  .progress .dot{
+    height:3px;
+    flex:1;
+    border-radius:3px;
+    background:var(--surface-2);
+    overflow:hidden;
+  }
+  .progress .dot i{
+    display:block;
+    height:100%;
+    width:0%;
+    background:var(--gold);
+    transition:width .5s var(--ease);
+  }
+  .progress .dot.done i{width:100%;}
+  .progress .dot.active i{width:100%;}
+
+  /* ---- login screen ---- */
+  #screen-login{justify-content:center;}
+  .login-hero{
+    text-align:center;
+    margin-bottom:36px;
+  }
+  .login-hero .mark-big{
+    width:60px;height:60px;
+    margin:0 auto 18px;
+    border-radius:18px;
+    background:linear-gradient(150deg, var(--gold-light), var(--gold) 60%, var(--gold-dim));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 14px 32px -10px rgba(212,175,55,0.5);
+  }
+  .login-hero .mark-big svg{width:30px;height:30px;stroke:var(--black);}
+  .login-hero h1{margin-bottom:6px;}
+  .divider{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:var(--gray-soft);
+    font-size:12px;
+    margin:20px 0;
+  }
+  .divider::before, .divider::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--border);
+  }
+  .switch-mode{
+    text-align:center;
+    margin-top:18px;
+    font-size:13.5px;
+    color:var(--gray);
+  }
+  .switch-mode a{color:var(--gold); text-decoration:none; font-weight:500; cursor:pointer;}
+  .form-banner{
+    font-size:13px;
+    padding:11px 14px;
+    border-radius:11px;
+    margin-bottom:16px;
+    display:none;
+  }
+  .form-banner.show{display:block;}
+  .form-banner.err{background:rgba(226,104,95,0.12); color:#f0a39d; border:0.5px solid rgba(226,104,95,0.3);}
+  .form-banner.ok{background:rgba(127,194,138,0.12); color:#a8dab0; border:0.5px solid rgba(127,194,138,0.3);}
+
+  /* ---- welcome screen ---- */
+  .welcome-icon{
+    width:76px;height:76px;
+    border-radius:24px;
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:26px;
+    animation:pop .55s var(--ease);
+    box-shadow:var(--shadow-soft);
+  }
+  .welcome-icon svg{width:36px;height:36px;stroke:var(--gold);}
+  @keyframes pop{
+    0%{transform:scale(0.6); opacity:0;}
+    100%{transform:scale(1); opacity:1;}
+  }
+  .feature-row{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    padding:14px 0;
+    border-bottom:0.5px solid var(--border);
+  }
+  .feature-row:last-child{border-bottom:none;}
+  .feature-row .ic{
+    width:36px;height:36px;
+    border-radius:10px;
+    background:rgba(212,175,55,0.1);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .feature-row .ic svg{width:18px;height:18px;stroke:var(--gold);}
+  .feature-row .txt b{display:block; font-size:14.5px; font-weight:600; margin-bottom:2px;}
+  .feature-row .txt span{font-size:13px; color:var(--gray);}
+
+  /* ---- cards ---- */
+  .macro-card{
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:16px;
+    padding:17px 18px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:10px;
+    box-shadow:var(--shadow-card);
+    transition:border-color .2s var(--ease), transform .2s var(--ease);
+  }
+  .macro-card:hover{border-color:var(--border-strong);}
+  .macro-card .ic{
+    width:40px;height:40px;
+    border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .macro-card .ic svg{width:20px;height:20px;}
+  .macro-card .info{flex:1; min-width:0;}
+  .macro-card .info b{font-size:14px; font-weight:600; display:block;}
+  .macro-card .info span{font-size:12px; color:var(--gray);}
+  .macro-card .val{font-size:17px; font-weight:600; color:var(--gold-light); flex-shrink:0;}
+  .bar-track{
+    height:5px;
+    background:var(--black-soft);
+    border-radius:3px;
+    margin-top:8px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    border-radius:3px;
+    width:0%;
+    transition:width 1s var(--ease);
+  }
+
+  /* ---- home / upload screen ---- */
+  .upload-zone{
+    border:1.5px dashed var(--border);
+    border-radius:24px;
+    padding:40px 24px;
+    text-align:center;
+    background:var(--surface);
+    margin-bottom:22px;
+    transition:border-color .25s var(--ease), background .25s var(--ease);
+    position:relative;
+    overflow:hidden;
+  }
+  .upload-zone.has-img{
+    padding:0;
+    border-style:solid;
+  }
+  .upload-zone .cam-ic{
+    width:68px;height:68px;
+    border-radius:50%;
+    background:rgba(212,175,55,0.1);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+  }
+  .upload-zone .cam-ic svg{width:30px;height:30px;stroke:var(--gold);}
+  .upload-zone p{font-size:14px; color:var(--gray); margin-top:6px;}
+  .upload-zone img{
+    width:100%;
+    height:220px;
+    object-fit:cover;
+    display:block;
+  }
+  .upload-zone .retake{
+    position:absolute;
+    top:12px; right:12px;
+    background:rgba(11,11,10,0.7);
+    border:0.5px solid var(--border-strong);
+    color:var(--white);
+    font-size:12px;
+    font-weight:500;
+    padding:7px 12px;
+    border-radius:9px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .upload-zone .retake:hover{background:rgba(11,11,10,0.9);}
+
+  .nav-bottom{
+    display:flex;
+    justify-content:space-around;
+    padding-top:16px;
+    margin-top:auto;
+    border-top:0.5px solid var(--border);
+  }
+  .nav-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    color:var(--gray-soft);
+    font-size:10.5px;
+    cursor:pointer;
+    transition:color .2s;
+    background:none;
+    border:none;
+    font-family:inherit;
+  }
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{color:var(--gold);}
+
+  /* ---- diet screens ---- */
+  .goal-card{
+    width:100%;
+    text-align:left;
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:12px;
+    cursor:pointer;
+    transition:border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+    color:var(--white);
+    font-family:inherit;
+  }
+  .goal-card:hover{border-color:var(--border-strong); background:var(--surface-2);}
+  .goal-card:active{transform:scale(0.98);}
+  .goal-card.sel{
+    border-color:var(--gold);
+    background:rgba(212,175,55,0.1);
+  }
+  .goal-card .ic{
+    width:42px;height:42px;
+    border-radius:12px;
+    background:rgba(212,175,55,0.12);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .goal-card .ic svg{width:21px;height:21px;stroke:var(--gold);}
+  .goal-card .gtxt b{display:block; font-size:15px; font-weight:600; margin-bottom:3px;}
+  .goal-card .gtxt span{font-size:12.5px; color:var(--gray); line-height:1.5;}
+  .goal-card .check{
+    margin-left:auto;
+    width:20px;height:20px;
+    border-radius:50%;
+    border:1.5px solid var(--border-strong);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .goal-card.sel .check{background:var(--gold); border-color:var(--gold);}
+  .goal-card.sel .check svg{width:12px;height:12px;stroke:var(--black);}
+
+  .diet-result-hero{
+    text-align:center;
+    margin-bottom:8px;
+  }
+  .diet-result-hero .badge{
+    display:inline-block;
+    background:rgba(212,175,55,0.12);
+    color:var(--gold-light);
+    font-size:12px;
+    font-weight:500;
+    padding:6px 14px;
+    border-radius:20px;
+    border:0.5px solid var(--border-strong);
+    margin-bottom:14px;
+  }
+
+  /* loading */
+  .loading-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    flex:1;
+    text-align:center;
+  }
+  .spinner{
+    width:52px;height:52px;
+    border-radius:50%;
+    border:2.5px solid var(--surface-2);
+    border-top-color:var(--gold);
+    animation:spin 0.9s linear infinite;
+    margin-bottom:22px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-wrap p{color:var(--gray); font-size:14px;}
+  .loading-wrap b{display:block; margin-bottom:6px; font-size:16px;}
+
+  .preview-img{
+    width:100%;
+    height:210px;
+    border-radius:18px;
+    object-fit:cover;
+    margin-bottom:18px;
+    border:0.5px solid var(--border);
+    box-shadow:var(--shadow-card);
+  }
+
+  .disclaimer{
+    font-size:11.5px;
+    color:var(--gray-soft);
+    text-align:center;
+    margin-top:4px;
+    line-height:1.5;
+  }
+
+  /* ---- profile screen ---- */
+  .profile-head{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:26px;
+  }
+  .avatar{
+    width:56px;height:56px;
+    border-radius:50%;
+    background:linear-gradient(150deg, var(--gold-light), var(--gold-dim));
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+    font-weight:600;
+    color:var(--black);
+    flex-shrink:0;
+  }
+  .profile-head .pname{font-size:17px; font-weight:600;}
+  .profile-head .pemail{font-size:13px; color:var(--gray); margin-top:2px; word-break:break-all;}
+  .stat-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .stat-box{
+    background:var(--surface);
+    border:0.5px solid var(--border);
+    border-radius:14px;
+    padding:14px 16px;
+  }
+  .stat-box .lbl{font-size:11.5px; color:var(--gray); margin-bottom:6px; letter-spacing:0.02em;}
+  .stat-box .v{font-size:18px; font-weight:600;}
+
+
+  /* ---- enhanced background ---- */
+  body{
+    background:
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(212,175,55,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 120% 80% at 50% -10%, #1f1c15 0%, #0b0b0a 55%);
+  }
+  .bg-deco .glow{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(60px);
+    opacity:.55;
+    pointer-events:none;
+    animation:floatGlow 14s ease-in-out infinite;
+  }
+  .glow-a{width:280px;height:280px;background:radial-gradient(circle,#d4af37 0%,transparent 70%);top:-80px;right:-80px;opacity:.25;}
+  .glow-b{width:320px;height:320px;background:radial-gradient(circle,#8a7224 0%,transparent 70%);bottom:-120px;left:-90px;opacity:.22;animation-delay:-5s;}
+  .glow-c{width:200px;height:200px;background:radial-gradient(circle,#f0d878 0%,transparent 70%);top:45%;left:-60px;opacity:.10;animation-delay:-9s;}
+  @keyframes floatGlow{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(20px,-20px) scale(1.08);}
+  }
+  .grid-overlay{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(212,175,55,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212,175,55,0.035) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 80%);
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 80%);
+    pointer-events:none;
+  }
+  .dot-spark{
+    position:absolute;width:3px;height:3px;border-radius:50%;
+    background:var(--gold-light);
+    box-shadow:0 0 8px 2px rgba(240,216,120,0.7);
+    opacity:.6;animation:twinkle 3.4s ease-in-out infinite;
+  }
+  .s1{top:14%;left:22%;animation-delay:0s;}
+  .s2{top:30%;right:18%;animation-delay:-1.2s;}
+  .s3{bottom:24%;left:14%;animation-delay:-2.1s;width:2px;height:2px;}
+  .s4{bottom:38%;right:24%;animation-delay:-0.6s;}
+  @keyframes twinkle{
+    0%,100%{opacity:.15;transform:scale(.8);}
+    50%{opacity:.9;transform:scale(1.4);}
+  }
+
+  /* ---- elevated logo mark ---- */
+  .brand .mark, .login-hero .mark-big{
+    position:relative;
+    background:
+      linear-gradient(150deg, #fff1b8 0%, #f0d878 18%, #d4af37 55%, #8a7224 100%);
+    box-shadow:
+      0 6px 18px -4px rgba(212,175,55,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -1px 0 rgba(0,0,0,0.35);
+  }
+  .brand .mark::after, .login-hero .mark-big::after{
+    content:'';position:absolute;inset:0;border-radius:inherit;
+    background:radial-gradient(ellipse 80% 50% at 30% 15%, rgba(255,255,255,0.7), transparent 60%);
+    pointer-events:none;
+  }
+  .login-hero .mark-big{
+    width:74px;height:74px;border-radius:22px;
+    box-shadow:
+      0 18px 40px -10px rgba(212,175,55,0.55),
+      0 0 0 1px rgba(212,175,55,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -1px 0 rgba(0,0,0,0.35);
+  }
+  .login-hero .mark-big svg{width:42px;height:42px;}
+  .login-hero .mark-big::before{
+    content:'';position:absolute;inset:-8px;border-radius:28px;
+    background:radial-gradient(circle, rgba(240,216,120,0.35), transparent 70%);
+    filter:blur(8px);z-index:-1;
+  }
+  .brand .mark svg{width:20px;height:20px;}
+
+  /* ---- camera modal ---- */
+  .cam-modal{
+    position:fixed;inset:0;z-index:1000;
+    background:rgba(0,0,0,0.92);
+    display:none;
+    flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:20px;
+    animation:fadeIn .25s var(--ease);
+  }
+  .cam-modal.active{display:flex;}
+  .cam-stage{
+    position:relative;width:100%;max-width:440px;
+    aspect-ratio:3/4;background:#000;border-radius:24px;overflow:hidden;
+    border:1px solid var(--border-strong);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.8);
+  }
+  .cam-stage video, .cam-stage canvas{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .cam-stage canvas{display:none;}
+  .cam-frame{
+    position:absolute;inset:14px;border-radius:18px;
+    border:1px dashed rgba(212,175,55,0.45);
+    pointer-events:none;
+  }
+  .cam-frame::before,.cam-frame::after,
+  .cam-frame > i:nth-child(1),.cam-frame > i:nth-child(2){
+    content:'';position:absolute;width:22px;height:22px;
+    border:2px solid var(--gold-light);
+  }
+  .cam-frame::before{top:-1px;left:-1px;border-right:0;border-bottom:0;border-top-left-radius:8px;}
+  .cam-frame::after{top:-1px;right:-1px;border-left:0;border-bottom:0;border-top-right-radius:8px;}
+  .cam-frame > i:nth-child(1){bottom:-1px;left:-1px;border-right:0;border-top:0;border-bottom-left-radius:8px;}
+  .cam-frame > i:nth-child(2){bottom:-1px;right:-1px;border-left:0;border-top:0;border-bottom-right-radius:8px;}
+  .cam-controls{
+    display:flex;align-items:center;justify-content:space-between;
+    width:100%;max-width:440px;margin-top:22px;
+  }
+  .cam-icon-btn{
+    width:52px;height:52px;border-radius:16px;
+    background:var(--surface-2);border:1px solid var(--border);
+    color:var(--white);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:all .2s var(--ease);
+  }
+  .cam-icon-btn:hover{background:var(--surface-3);border-color:var(--border-strong);color:var(--gold-light);}
+  .cam-icon-btn svg{width:22px;height:22px;}
+  .cam-shutter{
+    width:74px;height:74px;border-radius:50%;
+    background:linear-gradient(150deg,#fff1b8,#d4af37 60%,#8a7224);
+    border:4px solid rgba(0,0,0,0.6);
+    box-shadow:0 0 0 3px var(--gold-light),0 10px 30px -8px rgba(212,175,55,0.7);
+    cursor:pointer;transition:transform .15s var(--ease);
+  }
+  .cam-shutter:active{transform:scale(0.92);}
+  .cam-error{
+    color:var(--danger);font-size:13px;margin-top:14px;text-align:center;
+    max-width:440px;line-height:1.5;display:none;
+  }
+  .cam-error.show{display:block;}
+
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="bg-deco" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+    <div class="grid-overlay"></div>
+    <svg width="160" height="160" viewBox="0 0 24 24" style="top:-26px; left:-34px; transform:rotate(-12deg);"><path d="M6.5 3v7a2.5 2.5 0 0 0 5 0V3M9 10v11M17.5 3c-2 1-2 4-2 6a2 2 0 0 0 2 2c0-2 0-6 0-8z" stroke-width="1.1"/></svg>
+    <svg width="120" height="120" viewBox="0 0 24 24" style="bottom:80px; right:-30px; transform:rotate(14deg);"><circle cx="12" cy="12" r="9" stroke-width="1.1"/><path d="M12 7v5l3 3" stroke-width="1.1"/></svg>
+    <svg width="100" height="100" viewBox="0 0 24 24" style="top:42%; right:-22px; transform:rotate(-8deg);"><path d="M12 21c-4.5-2-7-5.8-7-10A7 7 0 0 1 12 3c0 6-1.5 9-1.5 9S12 9 12 3a7 7 0 0 1 7 8c0 4.2-2.5 8-7 10z" stroke-width="1.1"/></svg>
+    <svg width="130" height="130" viewBox="0 0 24 24" style="bottom:-34px; left:-28px; transform:rotate(6deg);"><path d="M6.5 6.5h11M6.5 6.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm11 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0zM9 12h6M9 17.5h6" stroke-width="1.1"/></svg>
+    <svg width="84" height="84" viewBox="0 0 24 24" style="top:18%; left:-18px; transform:rotate(20deg);"><path d="M3 3v18h18M7 13l3 3 7-7" stroke-width="1.1"/></svg>
+    <svg width="70" height="70" viewBox="0 0 24 24" style="top:6%; right:30px; transform:rotate(8deg);"><path d="M12 2l2.6 6.6L21 9.3l-5 4.4L17.5 21 12 17.3 6.5 21 8 13.7l-5-4.4 6.4-.7z" stroke-width="1"/></svg>
+    <svg width="60" height="60" viewBox="0 0 24 24" style="bottom:34%; left:30px; transform:rotate(-18deg);"><path d="M3 12c4-6 14-6 18 0M3 12c4 6 14 6 18 0" stroke-width="1"/></svg>
+    <span class="dot-spark s1"></span>
+    <span class="dot-spark s2"></span>
+    <span class="dot-spark s3"></span>
+    <span class="dot-spark s4"></span>
+  </div>
+
+  <!-- ============ SCREEN 1: LOGIN / REGISTER ============ -->
+  <section class="screen active" id="screen-login">
+    <div class="login-hero">
+      <div class="mark-big">
+        <svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="fm-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#3a2f10"/></linearGradient><radialGradient id="fm-shine" cx="0.3" cy="0.25" r="0.8"><stop offset="0%" stop-color="#fff6c9" stop-opacity=".9"/><stop offset="60%" stop-color="#fff6c9" stop-opacity="0"/></radialGradient></defs><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-leaf)" stroke="#0b0b0a" stroke-width="0.6"/><path d="M16 15.5V27" stroke="#0b0b0a" stroke-width="1.1" stroke-linecap="round"/><path d="M16 19c2.4-.6 4-2 4.6-4" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".55"/><path d="M16 23c2-.4 3.4-1.4 4-3" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".45"/><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-shine)"/></svg>
+      </div>
+      <h1>Fit<span class="accent">Macro</span></h1>
+      <p class="sub" id="login-tagline">Snap a photo, know your macros.</p>
+    </div>
+
+    <div class="form-banner" id="auth-banner"></div>
+
+    <div id="login-form">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com" id="login-email" autocomplete="email">
+        <div class="field-msg" id="login-email-msg"></div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="••••••••" id="login-pass" autocomplete="current-password">
+        <div class="field-msg" id="login-pass-msg"></div>
+      </div>
+      <button class="btn btn-primary" onclick="handleLogin()">Sign in</button>
+      <div class="divider">or</div>
+      <button class="btn btn-ghost" onclick="showRegister()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Create an account
+      </button>
+      <div class="switch-mode">By continuing you agree to our <a>terms</a></div>
+    </div>
+
+    <div id="register-form" style="display:none;">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" placeholder="Jordan Lee" id="reg-name" autocomplete="name">
+        <div class="field-msg" id="reg-name-msg"></div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com" id="reg-email" autocomplete="email">
+        <div class="field-msg" id="reg-email-msg"></div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="At least 6 characters" id="reg-pass" autocomplete="new-password">
+        <div class="field-msg" id="reg-pass-msg"></div>
+      </div>
+      <div class="field">
+        <label>Confirm password</label>
+        <input type="password" placeholder="••••••••" id="reg-pass2" autocomplete="new-password">
+        <div class="field-msg" id="reg-pass2-msg"></div>
+      </div>
+      <button class="btn btn-primary" onclick="handleRegister()">Create account</button>
+      <div class="switch-mode">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: WELCOME ============ -->
+  <section class="screen" id="screen-welcome">
+    <div class="topbar"><div class="back-spacer"></div><div class="brand"><div class="mark"><svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="fm-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#3a2f10"/></linearGradient><radialGradient id="fm-shine" cx="0.3" cy="0.25" r="0.8"><stop offset="0%" stop-color="#fff6c9" stop-opacity=".9"/><stop offset="60%" stop-color="#fff6c9" stop-opacity="0"/></radialGradient></defs><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-leaf)" stroke="#0b0b0a" stroke-width="0.6"/><path d="M16 15.5V27" stroke="#0b0b0a" stroke-width="1.1" stroke-linecap="round"/><path d="M16 19c2.4-.6 4-2 4.6-4" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".55"/><path d="M16 23c2-.4 3.4-1.4 4-3" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".45"/><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-shine)"/></svg></div><div class="brand-name">FIT<span>MACRO</span></div></div><div class="back-spacer"></div></div>
+
+    <div class="welcome-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </div>
+
+    <h1 id="welcome-title">Welcome to<br>your nutrition coach</h1>
+    <p class="sub">FitMacro uses AI to read your meals from a single photo and break them down into calories, protein, carbs and fat — instantly.</p>
+
+    <div style="margin-bottom:8px;">
+      <div class="feature-row">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="txt"><b>Snap a photo</b><span>Camera or gallery, your choice</span></div>
+      </div>
+      <div class="feature-row">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+        <div class="txt"><b>Instant AI analysis</b><span>Macros estimated in seconds</span></div>
+      </div>
+      <div class="feature-row">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 13l3 3 7-7"/></svg></div>
+        <div class="txt"><b>Track your goals</b><span>Personalized daily targets</span></div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="go('screen-stats')">Next
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 3: BODY STATS ============ -->
+  <section class="screen" id="screen-stats">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-welcome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+    <div class="progress">
+      <div class="dot done"><i></i></div>
+      <div class="dot active"><i></i></div>
+      <div class="dot"><i></i></div>
+    </div>
+
+    <h1>Tell us about<br>your body</h1>
+    <p class="sub">This helps us calculate your personal daily calorie and macro targets.</p>
+
+    <div class="field">
+      <label>Sex</label>
+      <div class="seg">
+        <button class="sel" onclick="selSeg(this)">Male</button>
+        <button onclick="selSeg(this)">Female</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Age</label>
+      <input type="number" placeholder="e.g. 24" id="in-age" min="10" max="100">
+      <div class="field-msg" id="in-age-msg"></div>
+    </div>
+
+    <div class="field">
+      <label>Height (cm)</label>
+      <input type="number" placeholder="e.g. 178" id="in-height" min="100" max="250">
+      <div class="field-msg" id="in-height-msg"></div>
+    </div>
+
+    <div class="field">
+      <label>Weight (kg)</label>
+      <input type="number" placeholder="e.g. 72" id="in-weight" min="30" max="300">
+      <div class="field-msg" id="in-weight-msg"></div>
+    </div>
+
+    <div class="field">
+      <label>Activity level</label>
+      <select id="in-activity">
+        <option value="1.2">Sedentary — little exercise</option>
+        <option value="1.375">Light — 1-3 days / week</option>
+        <option value="1.55" selected>Moderate — 3-5 days / week</option>
+        <option value="1.725">Active — 6-7 days / week</option>
+        <option value="1.9">Very active — physical job/training</option>
+      </select>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="calcAndGo()">Next
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 4: DAILY TARGETS ============ -->
+  <section class="screen" id="screen-targets">
+    <div class="topbar">
+      <div class="back-btn" id="targets-back" onclick="go('screen-stats')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+    <div class="progress" id="targets-progress">
+      <div class="dot done"><i></i></div>
+      <div class="dot done"><i></i></div>
+      <div class="dot active"><i></i></div>
+    </div>
+
+    <h1>Your daily<br><span class="accent">targets</span></h1>
+    <p class="sub">Based on your stats, here's what we recommend each day.</p>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,175,55,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="info"><b>Calories</b><span>Daily energy target</span></div>
+      <div class="val" id="t-cal">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(216,90,48,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08a5f" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <div class="info"><b>Protein</b><span>Muscle &amp; repair</span></div>
+      <div class="val" id="t-protein">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(99,153,34,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#a3c469" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg></div>
+      <div class="info"><b>Carbs</b><span>Energy fuel</span></div>
+      <div class="val" id="t-carbs">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,83,126,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08aa8" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="info"><b>Fat</b><span>Hormones &amp; absorption</span></div>
+      <div class="val" id="t-fat">—</div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="targets-cta" onclick="go('screen-home')">Go to home
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 5: HOME / UPLOAD ============ -->
+  <section class="screen" id="screen-home">
+    <div class="topbar">
+      <div class="back-spacer"></div>
+      <div class="brand"><div class="mark"><svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="fm-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#3a2f10"/></linearGradient><radialGradient id="fm-shine" cx="0.3" cy="0.25" r="0.8"><stop offset="0%" stop-color="#fff6c9" stop-opacity=".9"/><stop offset="60%" stop-color="#fff6c9" stop-opacity="0"/></radialGradient></defs><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-leaf)" stroke="#0b0b0a" stroke-width="0.6"/><path d="M16 15.5V27" stroke="#0b0b0a" stroke-width="1.1" stroke-linecap="round"/><path d="M16 19c2.4-.6 4-2 4.6-4" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".55"/><path d="M16 23c2-.4 3.4-1.4 4-3" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".45"/><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-shine)"/></svg></div><div class="brand-name">FIT<span>MACRO</span></div></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <h1>Capture<br>your meal</h1>
+    <p class="sub">Take a photo or choose one from your gallery to calculate its nutrition.</p>
+
+    <div class="upload-zone" id="upload-zone">
+      <div class="cam-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <p id="upload-status">No photo selected yet</p>
+    </div>
+
+    <input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none;" onchange="handleFile(event)">
+    <input type="file" id="file-gallery" accept="image/*" style="display:none;" onchange="handleFile(event)">
+
+    <div class="btn-row" style="margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="openCamera()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Take photo
+      </button>
+      <button class="btn btn-ghost" onclick="document.getElementById('file-gallery').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Gallery
+      </button>
+    </div>
+
+    <button class="btn btn-primary" id="analyze-btn" style="margin-bottom:14px;" disabled onclick="startAnalysis()">
+      Analyze meal
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+
+    <div class="spacer"></div>
+
+    <div class="nav-bottom">
+      <button class="nav-item active" onclick="go('screen-home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+      </button>
+      <button class="nav-item" onclick="openDiet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 3v7a2.5 2.5 0 0 0 5 0V3M9 10v11M17.5 3c-2 1-2 4-2 6a2 2 0 0 0 2 2c0-2 0-6 0-8z"/></svg>
+        Diet
+      </button>
+      <button class="nav-item" onclick="go('screen-targets')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Targets
+      </button>
+      <button class="nav-item" onclick="go('screen-profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+        Profile
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 6: LOADING ============ -->
+  <section class="screen" id="screen-loading">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <b>Analyzing your meal…</b>
+      <p>Our AI is identifying ingredients<br>and estimating portions</p>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 7: RESULTS ============ -->
+  <section class="screen" id="screen-results">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="brand"><div class="mark"><svg viewBox="0 0 32 32" fill="none"><defs><linearGradient id="fm-leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#3a2f10"/></linearGradient><radialGradient id="fm-shine" cx="0.3" cy="0.25" r="0.8"><stop offset="0%" stop-color="#fff6c9" stop-opacity=".9"/><stop offset="60%" stop-color="#fff6c9" stop-opacity="0"/></radialGradient></defs><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-leaf)" stroke="#0b0b0a" stroke-width="0.6"/><path d="M16 15.5V27" stroke="#0b0b0a" stroke-width="1.1" stroke-linecap="round"/><path d="M16 19c2.4-.6 4-2 4.6-4" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".55"/><path d="M16 23c2-.4 3.4-1.4 4-3" stroke="#0b0b0a" stroke-width=".8" stroke-linecap="round" opacity=".45"/><path d="M16 28c-5.5-2.4-8.5-7-8.5-12.2C7.5 9 11.5 4 16 4c0 7-1.8 11-1.8 11S16 11 16 4c4.5 0 8.5 5 8.5 9.8C24.5 21 21.5 25.6 16 28z" fill="url(#fm-shine)"/></svg></div><div class="brand-name">FIT<span>MACRO</span></div></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <img class="preview-img" id="preview-img" src="" alt="meal">
+
+    <h1 style="font-size:22px;" id="result-name">Your meal</h1>
+    <p class="sub" id="result-weight">Estimated from your photo</p>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,175,55,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="info"><b>Calories</b><span>Total energy</span></div>
+      <div class="val" id="r-cal">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(216,90,48,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08a5f" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <div class="info"><b>Protein</b><span id="r-protein-sub">—</span>
+        <div class="bar-track"><div class="bar-fill" id="r-protein-bar" style="background:#e08a5f;"></div></div>
+      </div>
+      <div class="val" id="r-protein">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(99,153,34,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#a3c469" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg></div>
+      <div class="info"><b>Carbs</b><span id="r-carbs-sub">—</span>
+        <div class="bar-track"><div class="bar-fill" id="r-carbs-bar" style="background:#a3c469;"></div></div>
+      </div>
+      <div class="val" id="r-carbs">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,83,126,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08aa8" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="info"><b>Fat</b><span id="r-fat-sub">—</span>
+        <div class="bar-track"><div class="bar-fill" id="r-fat-bar" style="background:#e08aa8;"></div></div>
+      </div>
+      <div class="val" id="r-fat">—</div>
+    </div>
+
+    <p class="disclaimer">Demo estimate — randomly generated for now, not a real nutritional analysis.</p>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="go('screen-home')">Back to home
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 8: PROFILE ============ -->
+  <section class="screen" id="screen-profile">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <h1>Profile</h1>
+    <p class="sub">Your account and physical info.</p>
+
+    <div class="profile-head">
+      <div class="avatar" id="p-avatar">—</div>
+      <div>
+        <div class="pname" id="p-name">—</div>
+        <div class="pemail" id="p-email">—</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box"><div class="lbl">Sex</div><div class="v" id="p-sex">—</div></div>
+      <div class="stat-box"><div class="lbl">Age</div><div class="v" id="p-age">—</div></div>
+      <div class="stat-box"><div class="lbl">Height</div><div class="v" id="p-height">—</div></div>
+      <div class="stat-box"><div class="lbl">Weight</div><div class="v" id="p-weight">—</div></div>
+    </div>
+    <div class="stat-box" style="margin-bottom:10px;">
+      <div class="lbl">Activity level</div><div class="v" id="p-activity" style="font-size:14px;">—</div>
+    </div>
+
+    <div class="macro-card" style="margin-top:12px;">
+      <div class="ic" style="background:rgba(212,175,55,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="info"><b>Daily calorie target</b><span>From your last calculation</span></div>
+      <div class="val" id="p-cal">—</div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" onclick="go('screen-stats')">Edit physical info</button>
+    <button class="btn btn-text" onclick="logout()">Sign out</button>
+
+    <div class="nav-bottom">
+      <button class="nav-item" onclick="go('screen-home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+      </button>
+      <button class="nav-item" onclick="openDiet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 3v7a2.5 2.5 0 0 0 5 0V3M9 10v11M17.5 3c-2 1-2 4-2 6a2 2 0 0 0 2 2c0-2 0-6 0-8z"/></svg>
+        Diet
+      </button>
+      <button class="nav-item" onclick="go('screen-targets')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Targets
+      </button>
+      <button class="nav-item active" onclick="go('screen-profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
+        Profile
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 9: DIET PURPOSE ============ -->
+  <section class="screen" id="screen-diet-purpose">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <h1>What's your<br><span class="accent">purpose</span>?</h1>
+    <p class="sub">Choose the goal that best fits what you want from your diet.</p>
+
+    <button class="goal-card" id="goal-cutting" onclick="selGoalType('cutting', this)">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 5L5 19M5 5l4 4M19 19l-4-4"/></svg></div>
+      <div class="gtxt"><b>Cutting</b><span>Lose fat with a calorie deficit</span></div>
+      <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg></div>
+    </button>
+
+    <button class="goal-card" id="goal-bulking" onclick="selGoalType('bulking', this)">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M9 6h9v9"/></svg></div>
+      <div class="gtxt"><b>Bulking</b><span>Build muscle with a calorie surplus</span></div>
+      <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg></div>
+    </button>
+
+    <button class="goal-card" id="goal-fit" onclick="selGoalType('fit', this)">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div class="gtxt"><b>Being fit</b><span>Maintain weight, balanced macros</span></div>
+      <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg></div>
+    </button>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="diet-purpose-next" disabled onclick="go('screen-diet-goal')">Next
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 10: GOAL WEIGHT ============ -->
+  <section class="screen" id="screen-diet-goal">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-diet-purpose')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <h1>What's your<br>goal <span class="accent">weight</span>?</h1>
+    <p class="sub" id="goal-weight-sub">Tell us the weight you're aiming for, in kilograms.</p>
+
+    <div class="field">
+      <label>Goal weight (kg)</label>
+      <input type="number" placeholder="e.g. 68" id="in-goal-weight" min="30" max="300">
+      <div class="field-msg" id="in-goal-weight-msg"></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="buildDietPlan()">Build my diet plan
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ SCREEN 11: DIET PLAN RESULT ============ -->
+  <section class="screen" id="screen-diet-result">
+    <div class="topbar">
+      <div class="back-btn" onclick="go('screen-diet-goal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="back-spacer"></div>
+    </div>
+
+    <div class="diet-result-hero">
+      <div class="badge" id="diet-result-badge">—</div>
+    </div>
+    <h1 style="text-align:center;">Your personal<br><span class="accent">diet plan</span></h1>
+    <p class="sub" id="diet-result-sub" style="text-align:center;">—</p>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,175,55,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div class="info"><b>Daily calories</b><span id="d-cal-sub">Adjusted for your goal</span></div>
+      <div class="val" id="d-cal">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(216,90,48,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08a5f" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <div class="info"><b>Protein</b><span>Muscle &amp; repair</span></div>
+      <div class="val" id="d-protein">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(99,153,34,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#a3c469" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg></div>
+      <div class="info"><b>Carbs</b><span>Energy fuel</span></div>
+      <div class="val" id="d-carbs">—</div>
+    </div>
+
+    <div class="macro-card">
+      <div class="ic" style="background:rgba(212,83,126,0.15);"><svg viewBox="0 0 24 24" fill="none" stroke="#e08aa8" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="info"><b>Fat</b><span>Hormones &amp; absorption</span></div>
+      <div class="val" id="d-fat">—</div>
+    </div>
+
+    <div class="stat-box" style="margin-top:6px;">
+      <div class="lbl">Estimated timeline</div>
+      <div class="v" id="d-timeline" style="font-size:14px;">—</div>
+    </div>
+
+    <p class="disclaimer">Estimates based on standard formulas, not medical advice. Consult a professional for personalized guidance.</p>
+
+    <div class="spacer"></div>
+    <button class="btn btn-primary" onclick="applyDietToTargets()">Set as my daily targets
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <button class="btn btn-text" onclick="go('screen-home')">Back to home</button>
+  </section>
+
+</div>
+
+<script>
+/* ---------------- in-memory "database" ---------------- */
+const usersDB = {};
+let currentUser = null;
+let bodyInfo = null;
+let dailyTargets = null;
+let uploadedImageData = null;
+let cameFromProfile = false;
+
+/* ---------------- navigation ---------------- */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(id).scrollTop = 0;
+
+  if(id === 'screen-targets'){
+    renderTargetsContext();
+  }
+  if(id === 'screen-profile'){
+    renderProfile();
+  }
+}
+
+/* ---------------- helpers ---------------- */
+function setMsg(id, text){
+  const el = document.getElementById(id);
+  if(el) el.textContent = text || '';
+}
+function setErr(inputId, msgId, hasErr, msg){
+  const input = document.getElementById(inputId);
+  input.classList.toggle('err', !!hasErr);
+  setMsg(msgId, hasErr ? msg : '');
+}
+function showBanner(text, type){
+  const b = document.getElementById('auth-banner');
+  b.textContent = text;
+  b.className = 'form-banner show ' + type;
+}
+function hideBanner(){
+  document.getElementById('auth-banner').className = 'form-banner';
+}
+function isValidEmail(v){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+/* ---------------- login / register ---------------- */
+function showRegister(){
+  hideBanner();
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'block';
+}
+function showLogin(){
+  hideBanner();
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+}
+
+function handleRegister(){
+  hideBanner();
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  let ok = true;
+
+  setErr('reg-name','reg-name-msg', !name, 'Please enter your name');
+  if(!name) ok = false;
+
+  if(!email){ setErr('reg-email','reg-email-msg', true, 'Email is required'); ok = false; }
+  else if(!isValidEmail(email)){ setErr('reg-email','reg-email-msg', true, 'Enter a valid email'); ok = false; }
+  else if(usersDB[email]){ setErr('reg-email','reg-email-msg', true, 'An account already exists for this email'); ok = false; }
+  else { setErr('reg-email','reg-email-msg', false); }
+
+  if(!pass || pass.length < 6){ setErr('reg-pass','reg-pass-msg', true, 'At least 6 characters'); ok = false; }
+  else { setErr('reg-pass','reg-pass-msg', false); }
+
+  if(pass2 !== pass || !pass2){ setErr('reg-pass2','reg-pass2-msg', true, 'Passwords do not match'); ok = false; }
+  else { setErr('reg-pass2','reg-pass2-msg', false); }
+
+  if(!ok) return;
+
+  usersDB[email] = { name, email, password: pass };
+  showBanner('Account created — please sign in below.', 'ok');
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-pass').value = '';
+  showLogin();
+  showBanner('Account created — please sign in below.', 'ok');
+}
+
+function handleLogin(){
+  hideBanner();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  let ok = true;
+
+  if(!email){ setErr('login-email','login-email-msg', true, 'Email is required'); ok = false; }
+  else if(!isValidEmail(email)){ setErr('login-email','login-email-msg', true, 'Enter a valid email'); ok = false; }
+  else { setErr('login-email','login-email-msg', false); }
+
+  if(!pass){ setErr('login-pass','login-pass-msg', true, 'Password is required'); ok = false; }
+  else { setErr('login-pass','login-pass-msg', false); }
+
+  if(!ok) return;
+
+  const user = usersDB[email];
+  if(!user){
+    showBanner('No account found for this email. Create one first.', 'err');
+    return;
+  }
+  if(user.password !== pass){
+    showBanner('Incorrect password. Try again.', 'err');
+    return;
+  }
+
+  currentUser = user;
+  document.getElementById('welcome-title').innerHTML = 'Welcome, ' + escapeHtml(user.name.split(' ')[0]) + '<br>let\'s get set up';
+  go('screen-welcome');
+}
+
+function logout(){
+  currentUser = null;
+  bodyInfo = null;
+  dailyTargets = null;
+  uploadedImageData = null;
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-email').value = '';
+  hideBanner();
+  showLogin();
+  go('screen-login');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ---------------- body stats ---------------- */
+function selSeg(btn){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function calcAndGo(){
+  const ageEl = document.getElementById('in-age');
+  const heightEl = document.getElementById('in-height');
+  const weightEl = document.getElementById('in-weight');
+  const age = parseFloat(ageEl.value);
+  const height = parseFloat(heightEl.value);
+  const weight = parseFloat(weightEl.value);
+  const activity = parseFloat(document.getElementById('in-activity').value);
+  const isMale = document.querySelector('#screen-stats .seg button.sel').textContent === 'Male';
+
+  let ok = true;
+  if(!age || age < 10 || age > 100){ setErr('in-age','in-age-msg', true, 'Enter a valid age (10-100)'); ok = false; }
+  else setErr('in-age','in-age-msg', false);
+
+  if(!height || height < 100 || height > 250){ setErr('in-height','in-height-msg', true, 'Enter a valid height in cm'); ok = false; }
+  else setErr('in-height','in-height-msg', false);
+
+  if(!weight || weight < 30 || weight > 300){ setErr('in-weight','in-weight-msg', true, 'Enter a valid weight in kg'); ok = false; }
+  else setErr('in-weight','in-weight-msg', false);
+
+  if(!ok) return;
+
+  let bmr = isMale
+    ? 10*weight + 6.25*height - 5*age + 5
+    : 10*weight + 6.25*height - 5*age - 161;
+
+  const calories = Math.round(bmr * activity);
+  const protein = Math.round(weight * 1.8);
+  const fat = Math.round((calories * 0.25) / 9);
+  const carbs = Math.round((calories - (protein*4) - (fat*9)) / 4);
+
+  bodyInfo = {
+    sex: isMale ? 'Male' : 'Female',
+    age, height, weight,
+    activityLabel: document.getElementById('in-activity').selectedOptions[0].textContent
+  };
+  dailyTargets = { calories, protein, carbs, fat };
+
+  document.getElementById('t-cal').textContent = calories + ' kcal';
+  document.getElementById('t-protein').textContent = protein + 'g';
+  document.getElementById('t-carbs').textContent = carbs + 'g';
+  document.getElementById('t-fat').textContent = fat + 'g';
+
+  go('screen-targets');
+}
+
+function renderTargetsContext(){
+  const fromOnboarding = !document.getElementById('screen-profile').classList.contains('active') && bodyInfo && !cameFromProfile;
+  document.getElementById('targets-cta').innerHTML = 'Go to home <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  document.getElementById('targets-cta').onclick = function(){ go('screen-home'); };
+}
+
+/* ---------------- photo upload / camera ---------------- */
+function handleFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    uploadedImageData = e.target.result;
+    const zone = document.getElementById('upload-zone');
+    zone.classList.add('has-img');
+    zone.innerHTML =
+      '<img src="' + uploadedImageData + '" alt="selected meal">' +
+      '<button class="retake" onclick="resetUpload()">' +
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>' +
+      'Retake</button>';
+    document.getElementById('analyze-btn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function resetUpload(){
+  uploadedImageData = null;
+  const zone = document.getElementById('upload-zone');
+  zone.classList.remove('has-img');
+  zone.innerHTML =
+    '<div class="cam-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>' +
+    '<p id="upload-status">No photo selected yet</p>';
+  document.getElementById('analyze-btn').disabled = true;
+}
+
+function startAnalysis(){
+  if(!uploadedImageData) return;
+  go('screen-loading');
+  setTimeout(()=>{
+    runMockAnalysis();
+    go('screen-results');
+  }, 1700);
+}
+
+/* ---------------- mock AI result generator ---------------- */
+const mockFoodNames = [
+  'Grilled chicken bowl','Veggie stir-fry','Salmon & rice plate','Avocado toast',
+  'Beef burrito','Greek salad','Pasta with marinara','Egg & spinach omelette',
+  'Turkey sandwich','Tofu noodle bowl'
+];
+
+function randBetween(min, max){
+  return Math.round(min + Math.random() * (max - min));
+}
+
+function runMockAnalysis(){
+  const name = mockFoodNames[Math.floor(Math.random() * mockFoodNames.length)];
+  const weightG = randBetween(180, 480);
+  const protein = randBetween(15, 55);
+  const carbs = randBetween(20, 70);
+  const fat = randBetween(8, 35);
+  const calories = protein*4 + carbs*4 + fat*9;
+
+  document.getElementById('preview-img').src = uploadedImageData;
+  document.getElementById('result-name').textContent = name;
+  document.getElementById('result-weight').textContent = 'Estimated from your photo · ~' + weightG + 'g';
+  document.getElementById('r-cal').textContent = calories + ' kcal';
+  document.getElementById('r-protein').textContent = protein + 'g';
+  document.getElementById('r-carbs').textContent = carbs + 'g';
+  document.getElementById('r-fat').textContent = fat + 'g';
+  document.getElementById('r-protein-sub').textContent = protein + 'g';
+  document.getElementById('r-carbs-sub').textContent = carbs + 'g';
+  document.getElementById('r-fat-sub').textContent = fat + 'g';
+
+  setTimeout(()=>{
+    document.getElementById('r-protein-bar').style.width = Math.min(100, protein*1.5) + '%';
+    document.getElementById('r-carbs-bar').style.width = Math.min(100, carbs*1.2) + '%';
+    document.getElementById('r-fat-bar').style.width = Math.min(100, fat*2.2) + '%';
+  }, 50);
+}
+
+/* ---------------- profile ---------------- */
+function renderProfile(){
+  if(!currentUser) return;
+  const initials = currentUser.name.trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('p-avatar').textContent = initials || '?';
+  document.getElementById('p-name').textContent = currentUser.name;
+  document.getElementById('p-email').textContent = currentUser.email;
+
+  if(bodyInfo){
+    document.getElementById('p-sex').textContent = bodyInfo.sex;
+    document.getElementById('p-age').textContent = bodyInfo.age + ' yrs';
+    document.getElementById('p-height').textContent = bodyInfo.height + ' cm';
+    document.getElementById('p-weight').textContent = bodyInfo.weight + ' kg';
+    document.getElementById('p-activity').textContent = bodyInfo.activityLabel;
+  } else {
+    document.getElementById('p-sex').textContent = '—';
+    document.getElementById('p-age').textContent = '—';
+    document.getElementById('p-height').textContent = '—';
+    document.getElementById('p-weight').textContent = '—';
+    document.getElementById('p-activity').textContent = 'Not set yet';
+  }
+
+  document.getElementById('p-cal').textContent = dailyTargets ? dailyTargets.calories + ' kcal' : '—';
+}
+
+/* ---------------- diet plan ---------------- */
+let selectedGoalType = null;
+
+function openDiet(){
+  if(!bodyInfo || !dailyTargets){
+    go('screen-stats');
+    return;
+  }
+  go('screen-diet-purpose');
+}
+
+function selGoalType(type, btn){
+  selectedGoalType = type;
+  document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('diet-purpose-next').disabled = false;
+
+  const subText = {
+    cutting: 'Tell us the weight you\'re aiming to reach as you lose fat.',
+    bulking: 'Tell us the weight you\'re aiming to reach as you build muscle.',
+    fit: 'Tell us the weight you\'d like to maintain or settle around.'
+  };
+  document.getElementById('goal-weight-sub').textContent = subText[type];
+}
+
+function buildDietPlan(){
+  const goalWeightEl = document.getElementById('in-goal-weight');
+  const goalWeight = parseFloat(goalWeightEl.value);
+
+  if(!goalWeight || goalWeight < 30 || goalWeight > 300){
+    setErr('in-goal-weight','in-goal-weight-msg', true, 'Enter a valid goal weight (30-300kg)');
+    return;
+  }
+  setErr('in-goal-weight','in-goal-weight-msg', false);
+
+  const currentWeight = bodyInfo.weight;
+  const maintenance = dailyTargets.calories;
+  const diff = goalWeight - currentWeight;
+  const KCAL_PER_KG = 7700;
+
+  let calories, weeklyRateKg, badgeText, subText, timelineText;
+
+  if(selectedGoalType === 'cutting'){
+    weeklyRateKg = 0.5;
+    const lossNeeded = Math.max(0, currentWeight - goalWeight);
+    const dailyDeficit = lossNeeded > 0 ? Math.round((weeklyRateKg * KCAL_PER_KG) / 7) : 400;
+    calories = Math.max(1300, maintenance - Math.min(dailyDeficit, 750));
+    const weeks = lossNeeded > 0 ? Math.ceil(lossNeeded / weeklyRateKg) : null;
+    badgeText = 'Cutting plan';
+    subText = 'A steady calorie deficit to lose fat while preserving muscle.';
+    timelineText = weeks ? ('About ' + weeks + ' weeks at a safe pace of ~' + weeklyRateKg + 'kg/week') : 'You\'re already at or below your goal weight';
+  } else if(selectedGoalType === 'bulking'){
+    weeklyRateKg = 0.25;
+    const gainNeeded = Math.max(0, goalWeight - currentWeight);
+    const dailySurplus = gainNeeded > 0 ? Math.round((weeklyRateKg * KCAL_PER_KG) / 7) : 300;
+    calories = maintenance + Math.min(dailySurplus, 500);
+    const weeks = gainNeeded > 0 ? Math.ceil(gainNeeded / weeklyRateKg) : null;
+    badgeText = 'Bulking plan';
+    subText = 'A controlled calorie surplus to support muscle growth.';
+    timelineText = weeks ? ('About ' + weeks + ' weeks at a lean pace of ~' + weeklyRateKg + 'kg/week') : 'You\'re already at or above your goal weight';
+  } else {
+    calories = maintenance;
+    badgeText = 'Maintenance plan';
+    subText = 'Balanced calories and macros to stay at your current shape.';
+    timelineText = Math.abs(diff) < 1 ? 'You\'re already at your goal weight' : 'Gradual adjustment as you maintain consistent habits';
+  }
+
+  const protein = Math.round(currentWeight * (selectedGoalType === 'bulking' ? 2.0 : 1.9));
+  const fatPct = selectedGoalType === 'cutting' ? 0.30 : 0.25;
+  const fat = Math.round((calories * fatPct) / 9);
+  const carbs = Math.max(50, Math.round((calories - (protein*4) - (fat*9)) / 4));
+
+  window._dietPlan = { calories, protein, carbs, fat, goalWeight, goalType: selectedGoalType };
+
+  document.getElementById('diet-result-badge').textContent = badgeText;
+  document.getElementById('diet-result-sub').textContent = subText;
+  document.getElementById('d-cal').textContent = calories + ' kcal';
+  document.getElementById('d-protein').textContent = protein + 'g';
+  document.getElementById('d-carbs').textContent = carbs + 'g';
+  document.getElementById('d-fat').textContent = fat + 'g';
+  document.getElementById('d-timeline').textContent = timelineText;
+
+  go('screen-diet-result');
+}
+
+function applyDietToTargets(){
+  if(!window._dietPlan) return;
+  const p = window._dietPlan;
+  dailyTargets = { calories: p.calories, protein: p.protein, carbs: p.carbs, fat: p.fat };
+
+  document.getElementById('t-cal').textContent = p.calories + ' kcal';
+  document.getElementById('t-protein').textContent = p.protein + 'g';
+  document.getElementById('t-carbs').textContent = p.carbs + 'g';
+  document.getElementById('t-fat').textContent = p.fat + 'g';
+
+  go('screen-targets');
+}
+
+/* ---------------- live camera ---------------- */
+let _camStream = null;
+let _camFacing = 'environment';
+
+async function openCamera(){
+  const modal = document.getElementById('cam-modal');
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  const errEl = document.getElementById('cam-error');
+  errEl.classList.remove('show'); errEl.textContent = '';
+  canvas.style.display = 'none';
+  video.style.display = 'block';
+  modal.classList.add('active');
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    errEl.textContent = 'Camera not supported on this device. Opening file picker instead.';
+    errEl.classList.add('show');
+    setTimeout(()=>{ closeCamera(); document.getElementById('file-camera').click(); }, 900);
+    return;
+  }
+  try{
+    _camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: _camFacing }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+      audio: false
+    });
+    video.srcObject = _camStream;
+  } catch(err){
+    console.warn(err);
+    errEl.textContent = 'Camera access blocked. Please allow camera permission, or use Gallery.';
+    errEl.classList.add('show');
+  }
+}
+
+function closeCamera(){
+  const modal = document.getElementById('cam-modal');
+  modal.classList.remove('active');
+  if(_camStream){
+    _camStream.getTracks().forEach(t=>t.stop());
+    _camStream = null;
+  }
+  const video = document.getElementById('cam-video');
+  video.srcObject = null;
+}
+
+async function flipCamera(){
+  _camFacing = (_camFacing === 'environment') ? 'user' : 'environment';
+  if(_camStream){ _camStream.getTracks().forEach(t=>t.stop()); _camStream = null; }
+  await openCamera();
+}
+
+function capturePhoto(){
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  if(!video.videoWidth){ return; }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+  uploadedImageData = dataUrl;
+  const zone = document.getElementById('upload-zone');
+  zone.classList.add('has-img');
+  zone.innerHTML =
+    '<img src="' + dataUrl + '" alt="captured meal">' +
+    '<button class="retake" onclick="resetUpload()">' +
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>' +
+    'Retake</button>';
+  document.getElementById('analyze-btn').disabled = false;
+  closeCamera();
+}
+
+</script>
+
+
+<!-- ============ CAMERA MODAL ============ -->
+<div class="cam-modal" id="cam-modal" role="dialog" aria-label="Camera">
+  <div class="cam-stage">
+    <video id="cam-video" autoplay playsinline muted></video>
+    <canvas id="cam-canvas"></canvas>
+    <div class="cam-frame"><i></i><i></i></div>
+  </div>
+  <div class="cam-controls">
+    <button class="cam-icon-btn" onclick="closeCamera()" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <button class="cam-shutter" onclick="capturePhoto()" aria-label="Capture"></button>
+    <button class="cam-icon-btn" onclick="flipCamera()" aria-label="Flip camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"/></svg>
+    </button>
+  </div>
+  <div class="cam-error" id="cam-error"></div>
+</div>
+
+</body>
+</html>
