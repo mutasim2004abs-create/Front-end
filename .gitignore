@@ -14,3 +14,6 @@ coverage/
 *.local
 npm-debug.log*
 .eslintcache
+
+# Local tooling
+.claude/
