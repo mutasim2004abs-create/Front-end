@@ -6,7 +6,7 @@ Engineering, started 2024). FitMacro is one of two flagship portfolio projects �
 **VisSort** (React 18 + TypeScript strict + Three.js + 239 Vitest tests + CI/CD to GitHub Pages).
 FitMacro v2 must become a genuine **peer of VisSort**: a real, working, tested product — not a UI mock.
 
-Portfolio: https://mutasim2004abs-create.github.io/mutasim-abbas-portfolio/
+Portfolio: https://mutasim-abbas.github.io/mutasim-abbas-portfolio/
 
 ## Honest starting point (v1 — what exists today)
 v1 is a good-looking but **non-functional prototype**. Two divergent versions exist:
@@ -29,7 +29,7 @@ Discard: the fake auth, the fake "AI" claim without an implementation.
 1. **Rebuild properly** — Vite + React 18 + TypeScript (strict) + Tailwind, as a **PWA**.
 2. **Real AI** — photo → macros, via a **serverless backend** that keeps the API key secret.
 3. **Real food database + search** — the headline feature; log real foods, not hand-typed numbers.
-4. Repo renamed `Front-end` → **FitMacro** (https://github.com/mutasim2004abs-create/FitMacro).
+4. Repo renamed `Front-end` → **FitMacro** (https://github.com/Mutasim-Abbas/FitMacro).
 5. Deploy to **Vercel** (hosts both the static app and the AI function).
 
 Implied and required (not optional): **real persistence**. Without it this stays a mock.
